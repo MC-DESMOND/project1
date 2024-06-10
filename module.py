@@ -335,7 +335,7 @@ class TerminalApp:
         self.DICTALL = f"""
 
 
-{colors.RED} ⚠️  please read very well and understand ⚠️ {colors.RESET}
+{colors.RED}   please read very well and understand  {colors.RESET}
 {colors.CYAN}
     first Arg      :    -3 or -4 (blank is -3)  
 
