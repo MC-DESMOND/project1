@@ -25,7 +25,7 @@ VideosList = []
 Downloadlist = []
 result = None
 onTime = time.time()
-moduleName = 'module.py'
+
 def GlobalInfo(text ,error=False,success=False,color=colors.LIGHTCYAN_EX):
     global onTime
     reset = colors.RESET
@@ -471,10 +471,7 @@ class App(CTk):
         set_default_color_theme('dark-blue')
         #*App Configure
         super().__init__(fg_color, **kwargs)
-        self.toUpdate = False
-        f = open(moduleName,'r')
-        self.currentCode = f.read()
-        self.updateCode = ''
+        
         self.height = 650
         self.width = 900
         self.ADDEDwidth = self.width+10
@@ -582,20 +579,7 @@ class App(CTk):
         self.info('start XDownloading')
         self.ontopState()
 
-    @Async
-    def checkForIfUpdate(self): #not used
-        try:
-            driver = webdriver.Chrome(keep_alive=False)
-            driver.minimize_window()
-            driver.get('https://github.com/MC-DESMOND/project1/blob/master/module.py')
-            code = driver.find_element(value='read-only-cursor-text-area')
-            self.updateCode = code.text
-            if self.currentCode == self.updateCode:
-                self.toUpdate = False
-            else:
-                self.toUpdate = True
-        except:
-            self.toUpdate = False
+    
     
     def ontopState(self):
         value = self.ontopBTN.get()
