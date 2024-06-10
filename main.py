@@ -69,7 +69,7 @@ def SetTimeOut(handler,int):
     sleep((int/1000))
     handler()
 
-def GetHTMLContent(playlistUrl , use_requests):
+def GetHTMLContent(playlistUrl , use_requests=False):
     if use_requests == False:
         driver:webdriver.Chrome
         try:
@@ -87,7 +87,6 @@ def GetHTMLContent(playlistUrl , use_requests):
     else:
         res = requests.get(playlistUrl)
         content = res.content
-        open('content.html','wb').write(content)
         content = content.decode().encode()
     return content
 
@@ -336,7 +335,7 @@ class TerminalApp:
         self.DICTALL = f"""
 
 
-{colors.RED} ⚠️  please read very well and understand ⚠️ {colors.RESET}
+{colors.RED}   please read very well and understand  {colors.RESET}
 {colors.CYAN}
     first Arg      :    -3 or -4 (blank is -3)  
 
@@ -580,6 +579,8 @@ class App(CTk):
         self.info('start XDownloading')
         self.ontopState()
 
+    
+    
     def ontopState(self):
         value = self.ontopBTN.get()
         self.ontopVar.set(value)
@@ -752,6 +753,7 @@ class App(CTk):
 
     def run(self):
         self.mainloop()
+
 
 if __name__ == '__main__':  
     try:
