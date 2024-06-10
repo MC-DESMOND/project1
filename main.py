@@ -504,7 +504,7 @@ class App(CTk):
         self.root = CTkFrame(self.base,fg_color=self.fgcolor,corner_radius=15)
         self.root.pack(expand = True)
         self.DIip = Image.open(path('logo.png'))
-        self.DIImage = CTkImage(self.DIip,size=(30,27))
+        self.DIImage = CTkImage(self.DIip,size=(30,30))
         self.DESDROIDIdentification = CTkLabel(self.base,text=' DESDROID inc',font=('courier',20),text_color=self.font_color,image=self.DIImage,compound='left')
         self.DESDROIDIdentification.pack(fill = 'x',ipady =10)
         self.console = CTkLabel(self.root,text='INFO ::',font=self.font,height=40,text_color=font_color,corner_radius=10)
