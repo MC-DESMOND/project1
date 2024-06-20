@@ -2,22 +2,17 @@ from customtkinter.windows.widgets.font import CTkFont
 from customtkinter.windows.widgets.image import CTkImage
 from tkinter.filedialog import askdirectory
 from PIL import Image , ImageTk
-from selenium import webdriver
 import moviepy.editor as edit
-from bs4 import BeautifulSoup
 import threading as threader
 from customtkinter import *
-from tkinter import Canvas
 from typing import Tuple
 from time import sleep
-import tkinter
 import webbrowser
-import requests
 import colorama
 import os , sys
 import pytube 
 import time
-
+import math
 
 colorama.init()
 colors = colorama.Fore
@@ -25,6 +20,123 @@ VideosList = []
 Downloadlist = []
 result = None
 onTime = time.time()
+AppName = 'XD-Ultra'
+
+
+FLOAT_ERROR = 0.0000005
+def rgb2hex(rgb, force_long=False):
+    
+    hx = ''.join(["%02x" % int(c * 255 + 0.5 - FLOAT_ERROR)
+                  for c in rgb])
+    if not force_long and hx[0::2] == hx[1::2]:
+        hx = ''.join(hx[0::2])
+    return "#%s" % hx
+
+
+def hex2rgb(str_rgb):
+    if str_rgb.lower() == 'cyan':
+        str_rgb = '#00ffff'
+    elif str_rgb.lower() == 'blue':
+        str_rgb = '#0000ff'
+    elif str_rgb.lower() == 'red':
+        str_rgb = '#ff0000'
+    elif str_rgb.lower() == 'green':
+        str_rgb = '#00ff00'
+    elif str_rgb.lower() == 'yellow':
+        str_rgb = '#ffff00'
+    elif str_rgb.lower() == 'purple':
+        str_rgb = '#ff00ff'
+    elif str_rgb.lower() == 'black':
+        str_rgb = '#000000'
+    try:
+        rgb = str_rgb[1:]
+        if len(rgb) == 6:
+            r, g, b = rgb[0:2], rgb[2:4], rgb[4:6]
+        elif len(rgb) == 3:
+            r, g, b = rgb[0] * 2, rgb[1] * 2, rgb[2] * 2
+        else:
+            raise ValueError()
+    except:
+        raise ValueError("Invalid value %r provided for rgb color."
+                         % str_rgb)
+    return tuple([float(int(v, 16)) / 255 for v in (r, g, b)])
+
+
+
+def gradient(color1,color2):
+    MaxPower = 255
+    rcolor1 = [i*MaxPower for i in hex2rgb(color1)]
+    rcolor2 = [i*MaxPower for i in hex2rgb(color2)]
+    rgblist = []
+    hexlist = []
+    rgblist.append(rgb2hex([i/MaxPower for i in rcolor1]))
+    while rcolor1 != rcolor2:
+        for i,o in enumerate(rcolor1):
+            if rcolor1[i] < rcolor2[i]:
+                rcolor1[i] = rcolor1[i]+1
+            elif rcolor1[i] > rcolor2[i]:
+                rcolor1[i] = rcolor1[i]-1
+        # rgblist.append("#"+str(''.join(map(lambda e:"%02X"%int(e),list(rcolor1)))))
+        rgblist.append(rgb2hex([i/MaxPower for i in rcolor1]))
+    return rgblist
+
+def MultiGradient(*hexs):
+    fade = []
+    for i in range(hexs.__len__()):
+        if i !=0:
+            fade.extend(gradient(hexs[i-1],hexs[i]))
+    return fade
+
+def MindMultiGradient(num:int = 0,*hexs):
+    """ num: numbers of colors in that list"""
+    grad = [i for i in MultiGradient(*hexs)]
+    length = grad.__len__()
+    fil = []
+    if num !=0:
+        if num > length:
+            remains = num - length
+            grad.reverse()
+            # fil = [item for item in grad for _ in range(2)]
+            while grad.__len__() <= num:                
+                for index, item in enumerate(grad):
+                    for x in range(2):
+                        fil.append(item)
+                    if fil.__len__() > num:
+                            grad = [i for i in fil]
+                            break
+                grad = [i for i in fil]
+                fil = []
+            # grad = [i for i in fil]
+            grad.reverse()
+        elif num < length:
+            remains = length - num
+            i = 0
+            while grad.__len__() >num:
+                    i = i + 1
+                    if i >= grad.__len__()-1:
+                        i = 1
+                    grad.remove(grad[i-1])
+    return grad
+
+def DoubleReveredMergedMindMultiGradient(num ,*options):
+    spread = MindMultiGradient(int(num/2),*options)[::-1]
+    spread.extend(spread[::-1])
+    return spread
+
+def angleToLinePoint(angle, OriginPoint, length):
+  # Convert angle to radians
+  angle = angle+90
+  angle_radians = math.radians(angle)
+  # Get original Point coordinates
+  x1, y1 = OriginPoint
+  # Calculate offsets based on angle and length
+  x_offset = length * math.cos(angle_radians)
+  y_offset = length * math.sin(angle_radians)
+  # Calculate second point coordinates
+  x2 = x1 + x_offset
+  y2 = y1 + y_offset
+
+  return (x1,y1,x2, length)
 
 def GlobalInfo(text ,error=False,success=False,color=colors.LIGHTCYAN_EX):
     global onTime
@@ -33,14 +145,12 @@ def GlobalInfo(text ,error=False,success=False,color=colors.LIGHTCYAN_EX):
         color = colors.LIGHTRED_EX
     elif success:
         color = colors.LIGHTGREEN_EX
-    print(f"{colors.CYAN}XDownloader {round(time.time()-onTime ,4):2f} {colors.LIGHTRED_EX}::{colors.RESET} {color} {text} {reset}")
+    print(f"{colors.CYAN}{AppName} {round(time.time()-onTime ,4):2f} {colors.LIGHTRED_EX}::{colors.RESET} {color} {text} {reset}")
     onTime = time.time()
 
 
 GlobalInfo('-- DESDROID inc --',color=colors.LIGHTRED_EX)
 GlobalInfo('LOADING...',color=colors.LIGHTBLUE_EX)
-
-
 
 def Async(func):
     global result
@@ -69,46 +179,17 @@ def SetTimeOut(handler,int):
     sleep((int/1000))
     handler()
 
-def GetHTMLContent(playlistUrl , use_requests=False):
-    if use_requests == False:
-        driver:webdriver.Chrome
-        try:
-            driver = webdriver.Chrome()
-        except:
-            try:
-                driver = webdriver.Firefox()
-            except Exception as e:
-                GlobalInfo('please install Google Chrome or Mozilla Firefox on your system',error=True)
-                webbrowser.open_new_tab('https://www.google.com/chrome/')
-                exit()
-        # driver.minimize_window()
-        driver.get(playlistUrl)
-        content = driver.page_source.encode('utf-8').strip()
-    else:
-        res = requests.get(playlistUrl)
-        content = res.content
-        content = content.decode().encode()
-    return content
 
 
 
 def ScrapPlaylistContext(playlistUrl):
-    content = GetHTMLContent(playlistUrl,False)
-    soup = BeautifulSoup(content,'lxml')
-    nameofplist = soup.find('yt-formatted-string',id='text',class_="style-scope yt-dynamic-sizing-formatted-string yt-sans-28").text
-    titles = soup.findAll('a',id='video-title')
-    views  = soup.findAll('yt-formatted-string',id="video-info")
-    creator= soup.findAll('a',class_="yt-simple-endpoint style-scope yt-formatted-string")
-    images = soup.findAll('img', class_="yt-core-image")
-    urls = [i.get('href') for i in titles]
+    playlist = pytube.Playlist(playlistUrl)
+    nameofplist = playlist.title
+    urls = list(playlist.video_urls)
     context = {nameofplist:{}}
     for index,url in enumerate(urls):
         littleContext = {
             "url":f"https://www.youtube.com{url}",
-            "title":f"{str(titles[index].text).strip('          ').strip('\n         ')}",
-            "video-info":f"{views[index].text}",
-            "image":f"{images[index].get('src')}",
-            "creator":f"{creator[index].text}"
             
         }
         context[nameofplist][f"playIndex{index}"] = littleContext
@@ -471,13 +552,13 @@ class App(CTk):
         set_default_color_theme('dark-blue')
         #*App Configure
         super().__init__(fg_color, **kwargs)
-        
         self.height = 650
         self.width = 900
         self.ADDEDwidth = self.width+10
         self.ADDEDheight = self.height+30
         self.fgcolor = fg_color
         self.isvideo = True
+
         self.window_center_width = int((int(self.winfo_screenwidth())/2)-(self.width)/2)
         self.window_center_height = int((int(self.winfo_screenheight())/2)-(self.height/2))
         self.geometry(f'{self.ADDEDwidth}x{self.ADDEDheight}+{self.window_center_width}+{self.window_center_height}')
@@ -486,7 +567,7 @@ class App(CTk):
         # self.wm_attributes('-transparent','black')
         # self.state('zoomed') # set the state of the window to full screen with out interupting the task bar
         self.iconbitmap(path('appicon.ico'))
-        self.title('XDownloader Pro')
+        self.title(AppName)
         self.font_family = 'roboto'
         self.font_size = 18
         self.font_color = font_color
@@ -497,10 +578,16 @@ class App(CTk):
         #* Parents Configure
         self.win_Div = 8
         
-        self.base = CTkCanvas(self,bg=self.fgcolor)
-        self.base.pack(fill = 'both',expand = True , padx =10,pady = 10)
-        self.PackBaseBackgroundImage()
+        self.base = CTkCanvas(self,bg=self.fgcolor,highlightthickness = 0)
         
+        # self.fgcolor = '#010F14'
+        self.geo = lambda : (int(self.winfo_width()),int(self.winfo_height()))
+        self.geo0 = lambda : (int(self.winfo_screenwidth()),int(self.winfo_screenheight()))
+        self.cs ='#114E67',self.base['bg']
+        print(self.base['width'])
+        print(self.base['height'])
+        self.lines = []
+        self.IBL = True
         self.root = CTkFrame(self.base,fg_color=self.fgcolor,corner_radius=15)
         self.root.pack(expand = True)
         self.DIip = Image.open(path('logo.png'))
@@ -511,7 +598,7 @@ class App(CTk):
         
         self.MainFrame = CTkFrame(self.root,fg_color='transparent',corner_radius=10,height=self.height,width=(int(self.width/2)+(self.width/self.win_Div)-40))
         self.RightFrame = RFframe(self,self.root)
-        self.MainFrame.grid(row=1,column =1,rowspan =2)
+        self.MainFrame.grid(row=1,column =1,rowspan =2,padx=(0,0))
         self.RightFrame.grid(row=2,column=2,pady=10,padx =(0,10))
         self.console.grid(row =1,column =2,ipadx=10,pady = (10,0))
         
@@ -540,7 +627,7 @@ class App(CTk):
         #*LinkLabels And Entrys
         self.LinkParent = CTkFrame(self.MainFrame,fg_color='transparent')
         self.LinkParent.place(x=self.MainFrameXCenter,y =(self.MainFrameYCenter-int(self.MainFrameYCenter/2)+self.MainChildrenGap),anchor='n')
-        self.LinkLabel = LLabel(self.LinkParent,app=self,text='YouTube Link')
+        self.LinkLabel = LLabel(self.LinkParent,app=self,text='YouTube Video Link')
         self.linkEntry = Entry(self.LinkParent,app = self, )
         self.LinkLabel.grid(row=1,column=1,padx=10,pady=5)
         self.linkEntry.run_grid()
@@ -574,12 +661,24 @@ class App(CTk):
         self.ismp34BTN = Button(self.DWSwitch,hover_color=self.hover_color,fg_color='transparent',text='Download mp3 & mp4',font=(self.font_family,self.font_size),corner_radius=self.DWBradius,width=int(self.DWSwidth/2)-self.DWSCgap*2,height=int(self.DWSheight-self.DWSCgap*2))
         self.ismp4BTN.grid(row=1,column = 1,pady =self.DWSCgap ,padx = self.DWSCgap)
         self.ismp34BTN.grid(row=1,column = 2,pady = self.DWSCgap,padx = (0,self.DWSCgap))
+        self.alphaframe = CTkFrame(self.MainFrame,fg_color='transparent')
+        self.alphaframe.place(x=self.MainFrameXCenter,y =(self.MainFrameYCenter+int(self.MainFrameYCenter/2)+(self.DWSheight/2))+70,anchor='center')
+        self.alphaLabel = LLabel(self.alphaframe,app=self,text='opacity')
+        self.alphaLabel.pack(anchor = 'nw',padx = (10,0),pady = (0,10))
+        self.alphaBTN = CTkSlider(self.alphaframe,width=400,from_=15,to=100,command=self.alphaValue,progress_color='#013D41',button_length=10,fg_color='#011B20')
+        self.alphaBTN.set(100)
+        self.alphaBTN.pack()
+        self.toDownload = 'Video'
         self.ismp4BTN.on_click = lambda :self.download()
         self.ismp34BTN.on_click = lambda :self.download(True)
         self.info('start XDownloading')
+        self.geoB = self.geo()
+        
         self.ontopState()
-
-    
+        self.PackBaseBackgroundLines()
+        
+    def alphaValue(self,e):
+        self.attributes('-alpha',self.alphaBTN.get()/100)
     
     def ontopState(self):
         value = self.ontopBTN.get()
@@ -604,18 +703,29 @@ class App(CTk):
             self.isvideo = True
         elif e._text == 'Playlist':
             self.isvideo = False
+        self.LinkLabel.configure(text=f'YouTube {e._text} Link')
         self.isvideoBTN.configure(fg_color='transparent')
         self.isPlayBTN.configure(fg_color='transparent')
+        self.toDownload = e._text
         e.configure(fg_color='#004E67')
 
-    
-    def PackBaseBackgroundImage(self):
-            size = (int(self.winfo_screenwidth()),int(self.winfo_screenheight()))
-            self.baseImage = Image.open(path('background.png'))
-            self.baseImage = self.baseImage.resize(size)
-            self.baseBg = CTkImage(dark_image=self.baseImage,size=size)
-            self.imagelabel = CTkLabel(self.base,image = self.baseBg)
-            self.baseMainBg = self.base.create_window(0,0,window=self.imagelabel,anchor='nw')
+    def PBBLcore(self):
+        spread = MindMultiGradient(int(self.geo0()[0])*2,*self.cs)
+        self.base.config(width=self.geo()[0],height=self.geo()[1])
+        for i,o in enumerate(spread):
+            le = int(self.geo0()[1])
+            self.base.create_line(*angleToLinePoint(180-90,(i,0),int(le+(le/2))),fill=o)
+        self.update()
+
+    @Async
+    def PackBaseBackgroundLines(self): 
+        self.PBBLcore()
+        self.base.pack(fill = 'both',expand = True , padx =10,pady = 10)
+        # self.after(1,self.PackBaseBackgroundLines)
+                
+    def Exit(self):
+        self.IBL = False
+        self.destroy()
 
     def updatePBBI(self):
         size = (int(self.winfo_screenwidth()),int(self.winfo_screenheight()))
@@ -676,7 +786,7 @@ class App(CTk):
             self.DownloadButtonsState(False)
             videoTag.isanimate = False
             videoTag.icon = videoTag.errori
-            self.info('Error :: could not find video',error=True)
+            self.info(f'Error :: could not find {self.toDownload}',error=True)
         videoTag.DownloadAttr = True
         if False in Downloadlist:
             pass
@@ -710,9 +820,9 @@ class App(CTk):
         self.VideoListClear()
         if self.linkEntry.get().strip() == '' or self.LocEntry.get().strip() == '' :
                 if self.linkEntry.get().strip() == '':
-                    self.info('input a url to a youtube video',error = True)
+                    self.info(f'input a url to a youtube {self.toDownload}',error = True)
                 elif self.LocEntry.get().strip() == '':
-                    self.info('input the video location',error = True)
+                    self.info(f'input the {self.toDownload} location',error = True)
         else:
             link = self.linkEntry.get()
             location = self.LocEntry.get()
@@ -742,7 +852,7 @@ class App(CTk):
                 except Exception as e:
                     GlobalInfo(e)
                     self.DownloadButtonsState(False)
-                    self.info('input a url to a youtube video',error = True)
+                    self.info(f'could not find {self.toDownload}',error = True)
                     
 
     def VideoListClear(self):
@@ -752,6 +862,7 @@ class App(CTk):
         VideosList.clear()
 
     def run(self):
+        self.protocol("WM_DELETE_WINDOW", self.Exit)
         self.mainloop()
 
 
@@ -759,4 +870,5 @@ if __name__ == '__main__':
     try:
         TerminalApp(list(sys.argv)).run()
     except:
-        App('#010F14').run()
+        # App('#010F14').run()
+        App('black').run()
