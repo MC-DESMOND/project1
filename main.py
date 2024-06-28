@@ -189,7 +189,7 @@ def ScrapPlaylistContext(playlistUrl):
     context = {nameofplist:{}}
     for index,url in enumerate(urls):
         littleContext = {
-            "url":f"https://www.youtube.com{url}",
+            "url":f"{url}",
             
         }
         context[nameofplist][f"playIndex{index}"] = littleContext
